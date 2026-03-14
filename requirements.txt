@@ -1,0 +1,12 @@
+# Smart Surveillance System — CodeFiesta 6.0
+# Domain: Artificial Intelligence
+# Problem 5: Suspicious Activity Detection Using Object Detection
+
+ultralytics
+deep-sort-realtime
+opencv-python
+flask
+torch
+torchvision
+numpy
+Pillow
