@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart Surveillance — Multi-Camera Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+/* ── Design Tokens ─────────────────────────────────────────── */
+:root {
+  --bg:          #070a10;
+  --bg2:         #0c1018;
+  --panel:       #0f1521;
+  --panel2:      #131c2b;
+  --glass:       rgba(15,21,33,0.85);
+  --border:      #1a2540;
+  --border2:     #243050;
+  --accent:      #3d7fff;
+  --accent2:     #6aa3ff;
+  --accent-glow: rgba(61,127,255,0.25);
+  --red:         #ef4444;
+  --red-glow:    rgba(239,68,68,0.3);
+  --orange:      #f97316;
+  --yellow:      #fbbf24;
+  --green:       #22c55e;
+  --green-glow:  rgba(34,197,94,0.25);
+  --purple:      #a855f7;
+  --text:        #c9d4ed;
+  --text2:       #8896b3;
+  --muted:       #4a5578;
+  --radius:      12px;
+  --radius-lg:   16px;
+  --transition:  cubic-bezier(0.4,0,0.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ══════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════ */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 58px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent) 30%, var(--purple) 70%, transparent);
+  opacity: 0.5;
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+.logo-icon-wrap {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+.logo-text {
+  display: flex; flex-direction: column; line-height: 1.1;
+}
+.logo-title {
+  font-size: 0.9rem; font-weight: 700; color: #fff;
+  letter-spacing: 0.01em;
+}
+.logo-sub {
+  font-size: 0.65rem; color: var(--text2); font-weight: 400; letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* System status bar */
+.header-stats {
+  display: flex; align-items: center; gap: 20px;
+}
+.hstat {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px;
+}
+.hstat-val {
+  font-size: 1.05rem; font-weight: 700; color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1;
+}
+.hstat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text2); }
+.hstat-divider { width: 1px; height: 28px; background: var(--border2); }
+.hstat-val.green { color: var(--green); }
+.hstat-val.red { color: var(--red); }
+.hstat-val.orange { color: var(--orange); }
+
+/* Live indicator */
+.live-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 0.7rem; font-weight: 700; color: var(--red);
+  letter-spacing: 0.08em;
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 6px var(--red);
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+/* Header actions */
+.header-actions { display: flex; gap: 8px; align-items: center; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: none; border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; transition: all 0.2s var(--transition);
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+.btn-ghost {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2);
+  color: var(--text);
+}
+.btn-ghost:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #5b5ef5);
+  color: #fff;
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 24px var(--accent-glow);
+}
+.btn-danger { background: linear-gradient(135deg, var(--red), #c53030); color: #fff; }
+.btn-danger:hover { transform: translateY(-1px); box-shadow: 0 4px 16px var(--red-glow); }
+.btn-icon {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  padding: 7px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  display: inline-flex; align-items: center;
+}
+.btn-icon:hover { color: var(--red); border-color: var(--red); }
+
+/* ══════════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════════ */
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+.content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ══════════════════════════════════════════
+   CAMERA GRID
+══════════════════════════════════════════ */
+.camera-grid {
+  flex: 1;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(460px, 1fr));
+  align-content: start;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+/* Camera Tile */
+.camera-tile {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+  position: relative;
+}
+.camera-tile:hover {
+  border-color: var(--border2);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px var(--border2);
+  transform: translateY(-1px);
+}
+.camera-tile.alert-active {
+  border-color: rgba(239,68,68,0.5) !important;
+  box-shadow: 0 0 30px rgba(239,68,68,0.15) !important;
+}
+
+/* Tile header */
+.tile-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 14px;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+.tile-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+
+.cam-status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green-glow);
+  flex-shrink: 0;
+  animation: live-pulse 2s ease-in-out infinite;
+}
+.cam-status-dot.offline { background: var(--muted); box-shadow: none; animation: none; }
+
+.tile-label {
+  font-weight: 600; font-size: 0.9rem; color: #fff;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.badge-live {
+  background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.1));
+  border: 1px solid rgba(239,68,68,0.4);
+  color: var(--red);
+  border-radius: 4px; padding: 1px 7px;
+  font-size: 0.62rem; font-weight: 800;
+  letter-spacing: 0.08em; flex-shrink: 0;
+}
+.badge-off {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  border-radius: 4px; padding: 1px 7px;
+  font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.08em; flex-shrink: 0;
+}
+
+/* Tile stats row */
+.tile-stats {
+  display: flex; gap: 12px; align-items: center;
+  flex-shrink: 0;
+}
+.tile-stat {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 0.72rem; color: var(--text2);
+}
+.tile-stat .val {
+  color: #fff; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+}
+.tile-stat .unit { font-size: 0.65rem; }
+
+/* Alert counter badge on tile */
+.tile-alert-count {
+  background: linear-gradient(135deg, var(--red), #c53030);
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 0.65rem; font-weight: 700;
+  min-width: 22px; text-align: center;
+  display: none;
+}
+.tile-alert-count.visible { display: inline-block; }
+
+/* Camera feed */
+.camera-feed {
+  position: relative;
+  background: #000;
+  overflow: hidden;
+  flex: 1;
+}
+.camera-feed img {
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  display: block;
+  transition: opacity 0.3s;
+}
+.camera-feed img.loading { opacity: 0.5; }
+
+/* Feed overlay — appears on hover */
+.feed-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 40%);
+  opacity: 0;
+  transition: opacity 0.25s;
+  display: flex; align-items: flex-end; padding: 10px 12px;
+  pointer-events: none;
+}
+.camera-tile:hover .feed-overlay { opacity: 1; }
+.feed-overlay-text {
+  font-size: 0.7rem; color: rgba(255,255,255,0.7);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Alert flash overlay */
+.alert-flash {
+  position: absolute; inset: 0;
+  border: 2px solid var(--red);
+  border-radius: 0;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: inset 0 0 20px rgba(239,68,68,0.3);
+}
+.alert-flash.flash {
+  animation: flash-anim 0.6s ease-out forwards;
+}
+@keyframes flash-anim {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* No feed / empty */
+.no-feed-msg {
+  padding: 70px 20px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+.no-feed-msg .icon { font-size: 2.5rem; opacity: 0.25; margin-bottom: 10px; }
+
+/* Empty state */
+.empty-state {
+  grid-column: 1/-1;
+  text-align: center;
+  padding: 100px 20px;
+  color: var(--muted);
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+.empty-state-icon {
+  width: 80px; height: 80px;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; opacity: 0.5;
+}
+.empty-state h3 { font-size: 1rem; font-weight: 600; color: var(--text2); }
+.empty-state p { font-size: 0.82rem; color: var(--muted); max-width: 280px; line-height: 1.7; }
+
+/* ══════════════════════════════════════════
+   RIGHT SIDEBAR — ALERTS
+══════════════════════════════════════════ */
+.sidebar {
+  width: 310px;
+  min-width: 260px;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sidebar-header {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.sidebar-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.82rem; font-weight: 700; color: #fff;
+}
+.sidebar-title-icon {
+  width: 24px; height: 24px;
+  background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.05));
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem;
+}
+.alert-counter-badge {
+  background: var(--red);
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  min-width: 20px; text-align: center;
+}
+
+/* Alert list */
+.alert-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+
+.alert-empty-msg {
+  padding: 30px 16px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-align: center;
+  line-height: 1.8;
+}
+
+.alert-item {
+  border-radius: 8px;
+  padding: 9px 11px;
+  border-left: 3px solid var(--muted);
+  background: rgba(255,255,255,0.025);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  word-break: break-word;
+  transition: background 0.15s;
+  animation: slide-in 0.25s var(--transition);
+  flex-shrink: 0;
+}
+.alert-item:hover { background: rgba(255,255,255,0.045); }
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+.alert-item.sev-CRITICAL { border-color: var(--red); background: rgba(239,68,68,0.06); }
+.alert-item.sev-HIGH     { border-color: #f97316; background: rgba(249,115,22,0.05); }
+.alert-item.sev-MEDIUM   { border-color: var(--yellow); background: rgba(251,191,36,0.04); }
+.alert-item.sev-LOW      { border-color: var(--green); background: rgba(34,197,94,0.04); }
+/* Firearms get a distinct magenta highlight regardless of severity */
+.alert-item.firearm-alert {
+  border-color: #c026d3 !important;
+  background: rgba(192,38,211,0.09) !important;
+  box-shadow: 0 0 10px rgba(192,38,211,0.15);
+}
+
+.alert-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 4px; gap: 6px;
+}
+.alert-meta-left { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.alert-cam-badge {
+  background: rgba(61,127,255,0.2);
+  border: 1px solid rgba(61,127,255,0.3);
+  color: var(--accent2);
+  border-radius: 4px;
+  padding: 0 5px;
+  font-size: 0.62rem; font-weight: 700;
+}
+.alert-time { color: var(--muted); font-size: 0.68rem; font-family: 'JetBrains Mono', monospace; }
+.sev-pill {
+  font-size: 0.6rem; font-weight: 800; letter-spacing: 0.06em;
+  padding: 1px 6px; border-radius: 4px; flex-shrink: 0;
+}
+.sev-pill.CRITICAL { background: rgba(239,68,68,0.2); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+.sev-pill.HIGH     { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3); }
+.sev-pill.MEDIUM   { background: rgba(251,191,36,0.12); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+.sev-pill.LOW      { background: rgba(34,197,94,0.12); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+
+.alert-type { font-weight: 700; color: #e2e8f0; font-size: 0.77rem; }
+.alert-msg  { color: var(--text2); margin-top: 1px; }
+
+/* Rule icons mapping */
+.rule-icon { margin-right: 4px; }
+
+/* ══════════════════════════════════════════
+   NOTIFICATION BELL
+══════════════════════════════════════════ */
+.notif-bell {
+  position: relative;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 7px 9px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  display: inline-flex; align-items: center;
+  color: var(--text2);
+}
+.notif-bell:hover { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
+.notif-bell .bell-badge {
+  position: absolute;
+  top: -5px; right: -5px;
+  background: var(--red);
+  color: #fff;
+  border-radius: 10px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  min-width: 17px;
+  text-align: center;
+  display: none;
+  border: 2px solid var(--bg);
+  animation: bell-pop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.notif-bell .bell-badge.show { display: block; }
+@keyframes bell-pop {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+.notif-bell.ringing { animation: bell-ring 0.5s ease; }
+@keyframes bell-ring {
+  0%,100% { transform: rotate(0); }
+  20% { transform: rotate(-15deg); }
+  40% { transform: rotate(15deg); }
+  60% { transform: rotate(-10deg); }
+  80% { transform: rotate(8deg); }
+}
+
+.threat-level {
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.05em;
+  transition: all 0.4s;
+}
+.threat-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  transition: all 0.4s;
+}
+.threat-level.tl-low  { color: var(--green); border-color: rgba(34,197,94,0.3); }
+.threat-level.tl-low .threat-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.threat-level.tl-med  { color: var(--yellow); border-color: rgba(251,191,36,0.4); }
+.threat-level.tl-med .threat-dot { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+.threat-level.tl-high { color: var(--orange); border-color: rgba(249,115,22,0.4); }
+.threat-level.tl-high .threat-dot { background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+.threat-level.tl-crit { color: var(--red); border-color: rgba(239,68,68,0.5); animation: threat-blink 1.2s ease-in-out infinite; }
+.threat-level.tl-crit .threat-dot { background: var(--red); box-shadow: 0 0 10px var(--red); animation: live-pulse 1s ease-in-out infinite; }
+@keyframes threat-blink {
+  0%,100% { box-shadow: none; }
+  50% { box-shadow: 0 0 12px rgba(239,68,68,0.3); }
+}
+
+/* ── Alert Sidebar filter tabs ── */
+.alert-filters {
+  display: flex; gap: 4px;
+  padding: 8px 8px 0;
+  flex-shrink: 0;
+}
+.filter-tab {
+  flex: 1;
+  padding: 5px 4px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  font-size: 0.63rem; font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+.filter-tab:hover { color: var(--text2); border-color: var(--border2); }
+.filter-tab.active { background: rgba(61,127,255,0.12); border-color: rgba(61,127,255,0.4); color: var(--accent2); }
+.filter-tab.fc-crit.active { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.4); color: var(--red); }
+.filter-tab.fc-high.active { background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.38); color: var(--orange); }
+
+/* ── Sound toggle in sidebar header ── */
+.sound-toggle {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: var(--text2);
+  transition: all 0.15s;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.sound-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.sound-toggle.muted { color: var(--muted); border-color: var(--border); }
+
+/* ── Critical alert full-width banner ── */
+#criticalBanner { display: none; }
+
+
+/* ══════════════════════════════════════════
+   ADD CAMERA MODAL
+══════════════════════════════════════════ */
+.modal-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  z-index: 500;
+  align-items: center; justify-content: center;
+}
+.modal-backdrop.open { display: flex; }
+
+.modal {
+  background: var(--panel2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 28px 30px;
+  width: 440px; max-width: 95vw;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+  animation: modal-in 0.25s var(--transition);
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.96) translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.modal-title {
+  font-size: 1rem; font-weight: 700; color: #fff;
+  margin-bottom: 22px;
+  display: flex; align-items: center; gap: 10px;
+}
+.modal-title-icon {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, rgba(61,127,255,0.2), rgba(91,94,245,0.1));
+  border: 1px solid rgba(61,127,255,0.3);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+}
+
+.form-group { margin-bottom: 14px; }
+.form-label {
+  font-size: 0.72rem; color: var(--text2);
+  display: block; margin-bottom: 6px;
+  font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.form-input {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 9px 12px;
+  font-size: 0.85rem;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.form-input::placeholder { color: var(--muted); }
+.form-hint { font-size: 0.68rem; color: var(--muted); margin-top: 4px; }
+
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+
+/* Quick-select source chips */
+.source-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.source-chip {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 0.68rem; color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.source-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ══════════════════════════════════════════
+   SETTINGS PANEL (slide-in from right)
+══════════════════════════════════════════ */
+.settings-panel {
+  position: fixed;
+  top: 0; right: -380px; width: 360px; height: 100vh;
+  background: var(--panel2);
+  border-left: 1px solid var(--border2);
+  z-index: 1100;
+  transition: right 0.35s var(--transition);
+  display: flex; flex-direction: column;
+  box-shadow: -8px 0 40px rgba(0,0,0,0.6);
+}
+.settings-panel.open { right: 0; }
+
+.settings-header {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  flex-shrink: 0;
+}
+.settings-title {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 700; font-size: 0.9rem; color: #fff;
+}
+.settings-title-icon {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, rgba(168,85,247,0.2),rgba(61,127,255,0.1));
+  border: 1px solid rgba(168,85,247,0.3);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem;
+}
+.settings-save-badge {
+  font-size: 0.68rem; color: var(--green);
+  opacity: 0; transition: opacity 0.4s;
+  font-weight: 700; display: flex; align-items: center; gap: 4px;
+}
+.settings-save-badge.show { opacity: 1; }
+
+.settings-body {
+  padding: 18px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+/* Settings groups */
+.settings-group {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.settings-group-title {
+  font-size: 0.68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--accent2);
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+/* Sliders */
+.slider-row { margin-bottom: 14px; }
+.slider-row:last-child { margin-bottom: 0; }
+.slider-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px;
+}
+.slider-label { font-size: 0.78rem; color: var(--text); font-weight: 500; }
+.slider-val {
+  font-size: 0.78rem; color: var(--accent); font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(61,127,255,0.1);
+  border: 1px solid rgba(61,127,255,0.2);
+  border-radius: 5px; padding: 1px 7px;
+  min-width: 60px; text-align: center;
+}
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%; height: 4px;
+  background: var(--border2);
+  border-radius: 2px; outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 2px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 0 8px var(--accent-glow), 0 0 0 3px rgba(61,127,255,0.15);
+  transition: transform 0.15s, box-shadow 0.15s;
+  margin-top: -6px;
+}
+input[type=range]:hover::-webkit-slider-thumb {
+  transform: scale(1.15);
+  box-shadow: 0 0 12px var(--accent-glow), 0 0 0 4px rgba(61,127,255,0.2);
+}
+.slider-hint { font-size: 0.67rem; color: var(--muted); margin-top: 5px; }
+
+/* Settings divider */
+.settings-divider {
+  height: 1px; background: var(--border);
+  margin: 4px 0;
+}
+
+/* Zone editor info box in settings */
+.zone-info-box {
+  background: rgba(61,127,255,0.06);
+  border: 1px solid rgba(61,127,255,0.2);
+  border-radius: 8px;
+  padding: 11px 12px;
+  font-size: 0.73rem;
+  color: var(--text2);
+  line-height: 1.6;
+  display: flex; gap: 8px;
+}
+.zone-info-box .info-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+/* ZONE EDITOR MODAL */
+#zoneEditorModal {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
+  z-index: 600;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#zoneEditorModal.open { display: flex; }
+.ze-container {
+  display: flex; flex-direction: column;
+  width: 92vw; max-width: 920px;
+  max-height: 94vh;
+  background: var(--panel2);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.8);
+}
+.ze-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0; gap: 10px; flex-wrap: wrap;
+}
+.ze-title {
+  font-size: 0.95rem; font-weight: 700; color: #fff;
+  display: flex; align-items: center; gap: 10px;
+}
+.ze-title-icon {
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(249,115,22,0.15));
+  border: 1px solid rgba(239,68,68,0.35);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+}
+.ze-controls { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.ze-mode-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 13px; border-radius: 7px;
+  border: 1.5px solid var(--border2);
+  background: rgba(255,255,255,0.04); color: var(--text2);
+  font-size: 0.74rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.ze-mode-btn.active-restricted { border-color: #ef4444; background: rgba(239,68,68,0.14); color: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,0.2); }
+.ze-mode-btn.active-firearms   { border-color: #f97316; background: rgba(249,115,22,0.14); color: #f97316; box-shadow: 0 0 10px rgba(249,115,22,0.2); }
+.ze-divider { width: 1px; height: 22px; background: var(--border2); }
+.ze-canvas-wrap {
+  position: relative; flex: 1; overflow: hidden; background: #000;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 280px;
+}
+#zeVideoImg { max-width: 100%; max-height: 100%; object-fit: contain; display: block; user-select: none; }
+#zeCanvas { position: absolute; inset: 0; cursor: crosshair; }
+.ze-hint {
+  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.72); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 0.69rem; color: rgba(255,255,255,0.72);
+  pointer-events: none; white-space: nowrap;
+}
+.ze-footer {
+  padding: 11px 18px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-shrink: 0; flex-wrap: wrap;
+}
+.ze-zone-stats { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.ze-zone-pill  { display: flex; align-items: center; gap: 6px; font-size: 0.73rem; color: var(--text2); }
+.ze-zone-pill .dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.ze-zone-pill .cnt { font-weight: 700; color: #fff; }
+.ze-footer-actions { display: flex; gap: 8px; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+<!-- ══ HEADER ══════════════════════════════════════════════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-icon-wrap">🛡️</div>
+    <div class="logo-text">
+      <span class="logo-title">Smart Surveillance</span>
+      <span class="logo-sub">CodeFiesta 6.0 · Multi-Camera</span>
+    </div>
+  </div>
+
+  <div class="header-stats">
+    <div class="live-pill">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+    <div class="hstat-divider"></div>
+    <div class="hstat">
+      <div class="hstat-val green" id="h-cameras">0</div>
+      <div class="hstat-label">Cameras</div>
+    </div>
+    <div class="hstat-divider"></div>
+    <div class="hstat">
+      <div class="hstat-val" id="h-persons">0</div>
+      <div class="hstat-label">Persons</div>
+    </div>
+    <div class="hstat-divider"></div>
+    <div class="hstat">
+      <div class="hstat-val red" id="h-alerts">0</div>
+      <div class="hstat-label">Alerts</div>
+    </div>
+    <div class="hstat-divider"></div>
+    <div class="threat-level tl-low" id="threatLevel">
+      <div class="threat-dot"></div>
+      <span id="threatText">ALL CLEAR</span>
+    </div>
+    <div class="hstat-divider"></div>
+    <div class="hstat">
+      <div class="hstat-val" id="h-time">--:--:--</div>
+      <div class="hstat-label">System Time</div>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <button class="btn btn-ghost" onclick="exportLog()" title="Export alert log as CSV">⬇ Export</button>
+    <button class="btn btn-ghost" id="zoneEditorBtn" onclick="openZoneEditor()" title="Draw restricted or firearms zones">
+      🗺 Zones <span id="zoneBadge" style="display:none;background:var(--red);color:#fff;border-radius:8px;padding:0 6px;font-size:0.6rem;margin-left:2px">0</span>
+    </button>
+    <button class="btn btn-ghost" onclick="toggleSettings()" title="Detection parameters">⚙ Settings</button>
+    <button class="notif-bell" id="notifBell" onclick="scrollToAlerts()" title="Notifications">
+      🔔
+      <span class="bell-badge" id="bellBadge">0</span>
+    </button>
+    <button class="btn btn-primary" onclick="openModal()">＋ Add Camera</button>
+  </div>
+</header>
+
+<!-- ══ CRITICAL ALERT BANNER ══════════════════════════════════ -->
+<div id="criticalBanner">
+  <div class="banner-pulse"></div>
+  <span id="bannerText">⚠ CRITICAL ALERT DETECTED</span>
+  <button class="banner-close" onclick="dismissBanner()">✕</button>
+</div>
+
+<!-- ══ CONTENT ═════════════════════════════════════════════════ -->
+<div class="content">
+
+  <!-- Camera Grid -->
+  <div class="camera-grid" id="cameraGrid">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-state-icon">📷</div>
+      <h3>No cameras connected</h3>
+      <p>Click <strong>+ Add Camera</strong> to connect a webcam, video file, or RTSP stream.</p>
+      <button class="btn btn-primary" onclick="openModal()" style="margin-top:6px">＋ Add Camera</button>
+    </div>
+  </div>
+
+  <!-- Alert Sidebar -->
+  <aside class="sidebar" id="alertSidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">
+        <div class="sidebar-title-icon">⚡</div>
+        Live Alerts
+        <span class="alert-counter-badge" id="alertTotalBadge" style="display:none">0</span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="Toggle alert sounds">🔊</button>
+        <button class="btn btn-ghost" style="font-size:0.72rem;padding:5px 10px" onclick="clearAlerts()">Clear</button>
+      </div>
+    </div>
+    <div class="alert-filters">
+      <div class="filter-tab active" id="ftab-all" onclick="setFilter('all')">All</div>
+      <div class="filter-tab fc-crit" id="ftab-CRITICAL" onclick="setFilter('CRITICAL')">🔴 Crit</div>
+      <div class="filter-tab fc-high" id="ftab-HIGH" onclick="setFilter('HIGH')">🟠 High</div>
+      <div class="filter-tab" id="ftab-weapon" onclick="setFilter('weapon')">🔫 Weapon</div>
+    </div>
+    <div class="alert-list" id="alertList">
+      <div class="alert-empty-msg">
+        ✦ Monitoring active<br>Alerts will appear here in real time
+      </div>
+    </div>
+  </aside>
+
+</div><!-- /content -->
+</div><!-- /page -->
+
+
+<!-- ZONE EDITOR MODAL -->
+<div id="zoneEditorModal">
+  <div class="ze-container">
+    <div class="ze-header">
+      <div class="ze-title">
+        <div class="ze-title-icon">🗺</div>
+        Zone Editor
+      </div>
+      <div class="ze-controls">
+        <button class="ze-mode-btn active-restricted" id="btnModeRestricted" onclick="setZoneMode('restricted')">🚫 Restricted Zone</button>
+        <button class="ze-mode-btn" id="btnModeFirearms" onclick="setZoneMode('firearms')">🔫 Firearms Zone</button>
+        <div class="ze-divider"></div>
+        <button class="btn btn-ghost" style="font-size:0.72rem;padding:5px 11px" onclick="zeUndo()">↩ Undo</button>
+        <button class="btn btn-ghost" style="font-size:0.72rem;padding:5px 11px" onclick="zeFinishPolygon()">✓ Done Polygon</button>
+        <button class="btn-icon" onclick="closeZoneEditor()">✕</button>
+      </div>
+    </div>
+    <div class="ze-canvas-wrap" id="zeCanvasWrap">
+      <img id="zeVideoImg" src="" alt="Live feed" draggable="false"/>
+      <canvas id="zeCanvas"></canvas>
+      <div class="ze-hint">Click to add points · Click near first point to close · Switch mode for different zone types</div>
+    </div>
+    <div class="ze-footer">
+      <div class="ze-zone-stats">
+        <div class="ze-zone-pill"><div class="dot" style="background:#ef4444"></div>Restricted: <span class="cnt" id="zeRestrictedCount">0</span></div>
+        <div class="ze-zone-pill"><div class="dot" style="background:#f97316"></div>Firearms: <span class="cnt" id="zeFirearmsStatus">Not set</span></div>
+      </div>
+      <div class="ze-footer-actions">
+        <button class="btn btn-ghost" style="font-size:0.78rem" onclick="zeClearAll()">🗑 Clear All</button>
+        <button class="btn btn-primary" style="font-size:0.78rem" onclick="zeSaveAndClose()">💾 Save &amp; Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADD CAMERA MODAL ════════════════════════════════════════ -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title">
+      <div class="modal-title-icon">📷</div>
+      Add Camera Source
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Camera Name</label>
+      <input class="form-input" id="camLabel" placeholder="e.g. Store Entrance" value="Camera 1"/>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Video Source</label>
+      <input class="form-input" id="camSource" placeholder="test.mp4 · rtsp://... · 0 (webcam)"/>
+      <div class="source-chips" style="margin-top:7px">
+        <div class="source-chip" onclick="setSource('test.mp4')">📄 test.mp4</div>
+        <div class="source-chip" onclick="setSource('test1.mp4')">📄 test1.mp4</div>
+        <div class="source-chip" onclick="setSource('0')">📷 Webcam 0</div>
+        <div class="source-chip" onclick="setSource('1')">📷 Webcam 1</div>
+      </div>
+      <div class="form-hint">Supports: webcam index, local video file, RTSP URL, YouTube live URL</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Camera ID <span style="color:var(--muted);font-weight:400">(unique key)</span></label>
+      <input class="form-input" id="camId" placeholder="cam1"/>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="addCamera()">▶ Start Camera</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SETTINGS PANEL ══════════════════════════════════════════ -->
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-header">
+    <div class="settings-title">
+      <div class="settings-title-icon">⚙</div>
+      Detection Parameters
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="settings-save-badge" id="saveBadge">✓ Saved</span>
+      <button class="btn-icon" onclick="toggleSettings()" title="Close">✕</button>
+    </div>
+  </div>
+
+  <div class="settings-body">
+
+    <!-- YOLO Detection -->
+    <div class="settings-group">
+      <div class="settings-group-title">🔍 YOLO Detection</div>
+      <div class="slider-row">
+        <div class="slider-meta">
+          <span class="slider-label">Confidence Threshold</span>
+          <span class="slider-val" id="val-yolo_conf">0.20</span>
+        </div>
+        <input type="range" id="sl-yolo_conf" min="0.05" max="0.90" step="0.01" value="0.20"
+               oninput="onSlider('yolo_conf', this.value, 'val-yolo_conf', v => parseFloat(v).toFixed(2))"/>
+        <div class="slider-hint">Lower → more detections; Higher → fewer false positives</div>
+      </div>
+    </div>
+
+    <!-- Loitering -->
+    <div class="settings-group">
+      <div class="settings-group-title">⏱ Loitering Detection</div>
+      <div class="slider-row">
+        <div class="slider-meta">
+          <span class="slider-label">Trigger After</span>
+          <span class="slider-val" id="val-loiter_seconds">10 s</span>
+        </div>
+        <input type="range" id="sl-loiter_seconds" min="3" max="60" step="1" value="10"
+               oninput="onSlider('loiter_seconds', this.value, 'val-loiter_seconds', v => parseInt(v)+' s')"/>
+        <div class="slider-hint">Seconds stationary before alert fires</div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-meta">
+          <span class="slider-label">Stationary Radius</span>
+          <span class="slider-val" id="val-loiter_radius_px">80 px</span>
+        </div>
+        <input type="range" id="sl-loiter_radius_px" min="20" max="300" step="5" value="80"
+               oninput="onSlider('loiter_radius_px', this.value, 'val-loiter_radius_px', v => parseInt(v)+' px')"/>
+        <div class="slider-hint">Max movement to count as "stationary"</div>
+      </div>
+    </div>
+
+    <!-- Abandoned Bag -->
+    <div class="settings-group">
+      <div class="settings-group-title">🎒 Abandoned Bag</div>
+      <div class="slider-row">
+        <div class="slider-meta">
+          <span class="slider-label">Trigger After</span>
+          <span class="slider-val" id="val-abandon_seconds">8 s</span>
+        </div>
+        <input type="range" id="sl-abandon_seconds" min="3" max="60" step="1" value="8"
+               oninput="onSlider('abandon_seconds', this.value, 'val-abandon_seconds', v => parseInt(v)+' s')"/>
+        <div class="slider-hint">Seconds a bag is alone before alert fires</div>
+      </div>
+    </div>
+
+    <!-- Running -->
+    <div class="settings-group">
+      <div class="settings-group-title">🏃 Running Speed</div>
+      <div class="slider-row">
+        <div class="slider-meta">
+          <span class="slider-label">Speed Threshold</span>
+          <span class="slider-val" id="val-running_px_per_sec">180 px/s</span>
+        </div>
+        <input type="range" id="sl-running_px_per_sec" min="40" max="400" step="10" value="80"
+               oninput="onSlider('running_px_per_sec', this.value, 'val-running_px_per_sec', v => parseInt(v)+' px/s')"/>
+        <div class="slider-hint">Pixels/sec above which person is flagged as running</div>
+      </div>
+    </div>
+
+    <!-- Zone info -->
+    <div class="zone-info-box">
+      <span class="info-icon">🗺</span>
+      <span>Use the <strong>🗺 Zones</strong> button in the header to interactively draw restricted zones and firearms alert zones on the live video feed.</span>
+    </div>
+
+    <!-- Email Alerts -->
+    <div class="settings-group">
+      <div class="settings-group-title">✉ Email Notifications</div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span class="slider-label">Enable Email Alerts</span>
+        <label style="position:relative;display:inline-block;width:38px;height:22px;cursor:pointer">
+          <input type="checkbox" id="email-enabled" style="opacity:0;width:0;height:0"
+            onchange="saveEmailSettings()">
+          <span style="position:absolute;inset:0;background:var(--border2);border-radius:11px;transition:0.3s;"></span>
+          <span style="position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:0.3s;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></span>
+          <style>#email-enabled:checked+span{background:var(--green);}#email-enabled:checked+span+span{transform:translateX(16px);}</style>
+        </label>
+      </div>
+
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">Sender (Gmail address)</label>
+        <input class="form-input" id="email-sender" type="email" placeholder="you@gmail.com" oninput="saveEmailSettings()"/>
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">App Password <span style="color:var(--muted);text-transform:none;font-weight:400">(not login password)</span></label>
+        <input class="form-input" id="email-password" type="password" placeholder="xxxx xxxx xxxx xxxx" oninput="saveEmailSettings()"/>
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">Recipients <span style="color:var(--muted);text-transform:none;font-weight:400">(comma-separated)</span></label>
+        <input class="form-input" id="email-recipients" placeholder="a@x.com, b@y.com" oninput="saveEmailSettings()"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <label class="form-label">Min Severity</label>
+          <select class="form-input" id="email-min_severity" style="padding:7px 10px" onchange="saveEmailSettings()">
+            <option value="CRITICAL">CRITICAL only</option>
+            <option value="HIGH" selected>HIGH+</option>
+            <option value="MEDIUM">MEDIUM+</option>
+            <option value="LOW">All</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Cooldown (s)</label>
+          <input class="form-input" id="email-cooldown_sec" type="number" min="10" max="3600" value="60" style="padding:7px 10px" oninput="saveEmailSettings()"/>
+        </div>
+      </div>
+      <div style="display:none">
+        <input id="email-smtp_host" value="smtp.gmail.com"/>
+        <input id="email-smtp_port" value="587"/>
+      </div>
+      <button class="btn btn-ghost" id="testEmailBtn" onclick="sendTestEmail()" style="width:100%;margin-top:4px;font-size:0.75rem">
+        📧 Send Test Email
+      </button>
+      <div class="slider-hint" style="margin-top:8px">Use a <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--accent)">Gmail App Password</a>, not your regular password. 2FA must be enabled.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+// ── State ────────────────────────────────────
+const cameras = {};   // cam_id → { intervalId, alertCount }
+let camCounter = 0;
+let lastAlertCount = 0;
+let lastAlertIds = new Set();
+let totalAlertsEver = 0;
+let alertFilter = 'all';
+let soundMuted = false;
+let newAlertsTotalCount = 0;
+
+const RULE_ICONS = { 1:'⏱', 2:'🎒', 3:'🚫', 4:'🔫', 5:'🏃', 6:'🔪' };
+const SEV_EMOJIS = { CRITICAL:'🔴', HIGH:'🟠', MEDIUM:'🟡', LOW:'🟢' };
+const TOAST_ICONS = {
+  'LOITERING':        '⏱',
+  'ABANDONED BAG':    '🎒',
+  'ZONE INTRUSION':   '🚫',
+  'FIREARM DETECTED': '🔫',
+  'KNIFE DETECTED':   '🔪',
+  'RUNNING':          '🏃',
+  'CAMERA':           '📷',
+  'ZONES SAVED':      '🗺',
+  'DEFAULT':          '⚠️',
+};
+
+// ── Clock ────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('h-time').textContent =
+    now.toLocaleTimeString('en-GB', { hour12: false });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Header stats ─────────────────────────────
+function updateHeaderStats() {
+  document.getElementById('h-cameras').textContent = Object.keys(cameras).length;
+  let Total = 0;
+  for (const k in cameras) {
+    Total += cameras[k].personCount || 0;
+  }
+  document.getElementById('h-persons').textContent = Total;
+}
+
+// ── Modal ─────────────────────────────────────
+function openModal() {
+  camCounter++;
+  document.getElementById('camId').value    = 'cam' + camCounter;
+  document.getElementById('camLabel').value = 'Camera ' + camCounter;
+  document.getElementById('camSource').value = 'test.mp4';
+  document.getElementById('modalBackdrop').classList.add('open');
+}
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modalBackdrop'))
+    document.getElementById('modalBackdrop').classList.remove('open');
+}
+function setSource(src) {
+  document.getElementById('camSource').value = src;
+}
+
+// ── Add Camera ────────────────────────────────
+async function addCamera() {
+  const id     = document.getElementById('camId').value.trim()     || ('cam' + Date.now());
+  const source = document.getElementById('camSource').value.trim() || 'test.mp4';
+  const label  = document.getElementById('camLabel').value.trim()  || id;
+  closeModal();
+  await fetch('/api/cameras/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, source, label })
+  }).catch(() => {});
+  addCameraTile(id, label, source);
+  showToast({ type: 'CAMERA', severity: 'LOW', message: `${label} connected`, label });
+}
+
+// ── Remove Camera ─────────────────────────────
+async function removeCamera(id) {
+  await fetch('/api/cameras/remove', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id })
+  }).catch(() => {});
+  if (cameras[id]) {
+    clearInterval(cameras[id].intervalId);
+    delete cameras[id];
+  }
+  const tile = document.getElementById('tile-' + id);
+  if (tile) {
+    tile.style.opacity = '0';
+    tile.style.transform = 'scale(0.95)';
+    tile.style.transition = 'opacity 0.2s, transform 0.2s';
+    setTimeout(() => tile.remove(), 220);
+  }
+  document.getElementById('emptyState').style.display =
+    Object.keys(cameras).length === 0 ? 'flex' : 'none';
+  updateHeaderStats();
+}
+
+// ── Build Camera Tile DOM ─────────────────────
+function addCameraTile(id, label, source) {
+  document.getElementById('emptyState').style.display = 'none';
+  const grid = document.getElementById('cameraGrid');
+
+  const tile = document.createElement('div');
+  tile.className = 'camera-tile';
+  tile.id = 'tile-' + id;
+  tile.style.opacity = '0';
+  tile.style.transform = 'scale(0.97)';
+  tile.style.transition = 'opacity 0.25s, transform 0.25s';
+
+  tile.innerHTML = `
+    <div class="tile-header">
+      <div class="tile-left">
+        <div class="cam-status-dot" id="dot-${id}"></div>
+        <span class="tile-label">${label}</span>
+        <span class="badge-live" id="badge-${id}">LIVE</span>
+        <span class="tile-alert-count" id="talert-${id}">0</span>
+      </div>
+      <div class="tile-stats">
+        <div class="tile-stat">
+          <span>👤</span>
+          <span class="val" id="pcount-${id}">0</span>
+        </div>
+        <div class="tile-stat">
+          <span class="val" id="fps-${id}">0</span>
+          <span class="unit"> fps</span>
+        </div>
+        <button class="btn-icon" onclick="removeCamera('${id}')" title="Remove camera">✕</button>
+      </div>
+    </div>
+    <div class="camera-feed">
+      <img id="feed-${id}" src="/video_feed/${id}" alt="${label}"
+           onerror="this.style.opacity='0.3'" onload="this.style.opacity='1'"/>
+      <div class="feed-overlay">
+        <span class="feed-overlay-text" id="src-${id}">${source}</span>
+      </div>
+      <div class="alert-flash" id="flash-${id}"></div>
+    </div>`;
+
+  grid.appendChild(tile);
+  requestAnimationFrame(() => {
+    tile.style.opacity = '1';
+    tile.style.transform = 'none';
+  });
+
+  cameras[id] = {
+    personCount: 0,
+    alertCount: 0,
+    intervalId: setInterval(() => updateStats(id), 1200)
+  };
+  updateHeaderStats();
+}
+
+// ── Stats polling ─────────────────────────────
+async function updateStats(id) {
+  try {
+    const r = await fetch(`/api/cameras/${id}/stats`);
+    if (!r.ok) return;
+    const s = await r.json();
+
+    const pc  = document.getElementById('pcount-' + id);
+    const fp  = document.getElementById('fps-' + id);
+    const bg  = document.getElementById('badge-' + id);
+    const dot = document.getElementById('dot-' + id);
+    if (pc) pc.textContent = s.person_count ?? 0;
+    if (fp) fp.textContent = (s.fps ?? 0) + '';
+    if (bg) {
+      bg.textContent = s.running ? 'LIVE' : 'OFF';
+      bg.className   = s.running ? 'badge-live' : 'badge-off';
+    }
+    if (dot) {
+      dot.className = 'cam-status-dot' + (s.running ? '' : ' offline');
+    }
+    if (cameras[id]) cameras[id].personCount = s.person_count ?? 0;
+    updateHeaderStats();
+  } catch {}
+}
+
+// ── Global alert polling ──────────────────────
+function renderAlertList(alerts) {
+  const list = document.getElementById('alertList');
+  if (!list) return;
+  let filtered = alerts;
+  if (alertFilter === 'CRITICAL') filtered = alerts.filter(a => a.severity === 'CRITICAL');
+  else if (alertFilter === 'HIGH') filtered = alerts.filter(a => a.severity === 'HIGH');
+  else if (alertFilter === 'weapon') filtered = alerts.filter(a => ['FIREARM DETECTED','KNIFE DETECTED'].includes(a.type));
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="alert-empty-msg">${alertFilter === 'all' ? '✦ No alerts yet<br>System is monitoring…' : '✦ No ' + alertFilter + ' alerts'}</div>`;
+    return;
+  }
+  list.innerHTML = filtered.slice(0, 60).map(a => {
+    const sev = a.severity || 'LOW';
+    const icon = RULE_ICONS[a.rule] || '⚠';
+    const isFirearm = a.type === 'FIREARM DETECTED';
+    const extraClass = isFirearm ? ' firearm-alert' : '';
+    return `
+      <div class="alert-item sev-${sev}${extraClass}">
+        <div class="alert-meta">
+          <div class="alert-meta-left">
+            ${a.label ? `<span class="alert-cam-badge">${a.label}</span>` : ''}
+            <span class="alert-time">${a.time_str || ''}</span>
+          </div>
+          <span class="sev-pill ${sev}">${sev}</span>
+        </div>
+        <div class="alert-type">${icon} ${a.type || ''}</div>
+        <div class="alert-msg">${a.message || ''}</div>
+      </div>`;
+  }).join('');
+}
+
+async function pollAlerts() {
+  try {
+    const r = await fetch('/api/alerts/all?n=80');
+    const alerts = await r.json();
+    window._lastAlerts = alerts;
+
+    // Detect new alerts for toast
+    const newAlerts = alerts.filter(a => {
+      const key = (a.cam_id || '') + ':' + (a.type || '') + ':' + (a.time_str || '');
+      if (!lastAlertIds.has(key)) { lastAlertIds.add(key); return true; }
+      return false;
+    });
+    if (lastAlertIds.size > 200) lastAlertIds = new Set([...lastAlertIds].slice(-100));
+
+    newAlerts.forEach(a => {
+      if (!soundMuted && ['CRITICAL','HIGH','MEDIUM'].includes(a.severity)) {
+        // Flash the tile
+        const flash = document.getElementById('flash-' + (a.cam_id || 'default'));
+        if (flash) { flash.classList.remove('flash'); void flash.offsetWidth; flash.classList.add('flash'); }
+        // Alert state on tile
+        const tile = document.getElementById('tile-' + (a.cam_id || 'default'));
+        if (tile) { tile.classList.add('alert-active'); setTimeout(() => tile.classList.remove('alert-active'), 4000); }
+      }
+    });
+
+    // Bell badge for new unread
+    if (newAlerts.length > 0) {
+      newAlertsTotalCount += newAlerts.length;
+      ringBell(newAlertsTotalCount);
+    }
+
+    // Threat level
+    updateThreatLevel(alerts.slice(0, 10));
+
+    // Update counter
+    const total = alerts.length;
+    document.getElementById('h-alerts').textContent = total;
+    const badge = document.getElementById('alertTotalBadge');
+    if (total > 0) { badge.style.display = 'inline-block'; badge.textContent = total; }
+    else badge.style.display = 'none';
+
+    // Render list
+    if (alerts.length === lastAlertCount && newAlerts.length === 0) return;
+    lastAlertCount = alerts.length;
+    renderAlertList(alerts);
+  } catch {}
+}
+
+async function clearAlerts() {
+  try { await fetch('/api/alerts/clear', { method: 'POST' }); } catch {}
+  lastAlertCount = 0;
+  lastAlertIds = new Set();
+  document.getElementById('alertList').innerHTML =
+    '<div class="alert-empty-msg">✦ Cleared<br>Monitoring resumed…</div>';
+  document.getElementById('h-alerts').textContent = '0';
+  document.getElementById('alertTotalBadge').style.display = 'none';
+}
+
+function exportLog() { window.open('/api/log/export'); }
+
+
+// ── Init ──────────────────────────────────────
+async function init() {
+  try {
+    const r = await fetch('/api/cameras');
+    const cams = await r.json();
+    cams.forEach(c => {
+      if (!cameras[c.cam_id]) addCameraTile(c.cam_id, c.label, c.source);
+    });
+  } catch {}
+  setInterval(pollAlerts, 1500);
+  loadSettings();
+}
+init();
+
+// ── Settings ──────────────────────────────────
+function toggleSettings() {
+  document.getElementById('settingsPanel').classList.toggle('open');
+}
+
+// ── Notification bell ─────────────────────────
+function ringBell(count) {
+  const bell = document.getElementById('notifBell');
+  const badge = document.getElementById('bellBadge');
+  if (!bell || !badge) return;
+  badge.textContent = count > 99 ? '99+' : count;
+  badge.classList.add('show');
+  bell.classList.remove('ringing');
+  void bell.offsetWidth;
+  bell.classList.add('ringing');
+}
+
+function scrollToAlerts() {
+  document.getElementById('alertSidebar')?.scrollIntoView({ behavior: 'smooth' });
+  // Clear bell badge
+  const badge = document.getElementById('bellBadge');
+  if (badge) { badge.classList.remove('show'); newAlertsTotalCount = 0; }
+}
+
+// ── Threat level ──────────────────────────────
+function updateThreatLevel(alerts) {
+  const el = document.getElementById('threatLevel');
+  const tx = document.getElementById('threatText');
+  if (!el || !tx) return;
+  const hasCrit  = alerts.some(a => a.severity === 'CRITICAL');
+  const hasHigh  = alerts.some(a => a.severity === 'HIGH');
+  const hasMed   = alerts.some(a => a.severity === 'MEDIUM');
+  el.className = 'threat-level ' + (hasCrit ? 'tl-crit' : hasHigh ? 'tl-high' : hasMed ? 'tl-med' : 'tl-low');
+  tx.textContent = hasCrit ? 'CRITICAL THREAT' : hasHigh ? 'ELEVATED' : hasMed ? 'MODERATE' : 'ALL CLEAR';
+}
+
+// ── Alert filter tabs ────────────────────────
+function setFilter(f) {
+  alertFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  const active = document.getElementById('ftab-' + f);
+  if (active) active.classList.add('active');
+  renderAlertList(window._lastAlerts || []);
+}
+
+// ── Sound toggle ─────────────────────────────
+function toggleSound() {
+  soundMuted = !soundMuted;
+  const btn = document.getElementById('soundToggle');
+  if (btn) { btn.textContent = soundMuted ? '🔇' : '🔊'; btn.classList.toggle('muted', soundMuted); }
+}
+
+let saveTimer = null;
+function onSlider(key, rawVal, valId, fmt) {
+  const num = parseFloat(rawVal);
+  document.getElementById(valId).textContent = fmt(num);
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveSettings(), 400);
+}
+
+async function loadSettings() {
+  try {
+    const r = await fetch('/api/config');
+    const c = await r.json();
+    const set = (id, val, fmt) => {
+      const el = document.getElementById('sl-' + id);
+      if (el) el.value = val;
+      const vl = document.getElementById('val-' + id);
+      if (vl) vl.textContent = fmt(val);
+    };
+    set('yolo_conf',          c.yolo_conf,          v => parseFloat(v).toFixed(2));
+    set('loiter_seconds',     c.loiter_seconds,     v => parseInt(v) + ' s');
+    set('loiter_radius_px',   c.loiter_radius_px,   v => parseInt(v) + ' px');
+    set('abandon_seconds',    c.abandon_seconds,    v => parseInt(v) + ' s');
+    set('running_px_per_sec', c.running_px_per_sec, v => parseInt(v) + ' px/s');
+  } catch {}
+  // Load email config
+  try {
+    const r2 = await fetch('/api/email/config');
+    const ec = await r2.json();
+    const tog = document.getElementById('email-enabled');
+    if (tog) tog.checked = ec.enabled;
+    const fields = ['smtp_host','smtp_port','sender','recipients','cooldown_sec'];
+    fields.forEach(f => { const el = document.getElementById('email-' + f); if (el) el.value = (f==='recipients'&&Array.isArray(ec[f])) ? ec[f].join(', ') : (ec[f] ?? ''); });
+    const sev = document.getElementById('email-min_severity');
+    if (sev) sev.value = ec.min_severity || 'HIGH';
+  } catch {}
+}
+
+async function saveSettings() {
+  const g = id => parseFloat(document.getElementById('sl-' + id)?.value || 0);
+  try {
+    await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        yolo_conf:          g('yolo_conf'),
+        loiter_seconds:     g('loiter_seconds'),
+        loiter_radius_px:   g('loiter_radius_px'),
+        abandon_seconds:    g('abandon_seconds'),
+        running_px_per_sec: g('running_px_per_sec'),
+      })
+    });
+    const badge = document.getElementById('saveBadge');
+    badge.classList.add('show');
+    setTimeout(() => badge.classList.remove('show'), 2000);
+  } catch {}
+}
+
+async function saveEmailSettings() {
+  const gv = id => document.getElementById('email-' + id)?.value ?? '';
+  const tog = document.getElementById('email-enabled');
+  try {
+    const r = await fetch('/api/email/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        enabled:      tog ? tog.checked : false,
+        smtp_host:    gv('smtp_host'),
+        smtp_port:    parseInt(gv('smtp_port')) || 587,
+        sender:       gv('sender'),
+        password:     gv('password'),
+        recipients:   gv('recipients'),
+        cooldown_sec: parseInt(gv('cooldown_sec')) || 60,
+        min_severity: gv('min_severity'),
+      })
+    });
+    const badge = document.getElementById('saveBadge');
+    badge.classList.add('show');
+    setTimeout(() => badge.classList.remove('show'), 2000);
+  } catch {}
+}
+
+async function sendTestEmail() {
+  const btn = document.getElementById('testEmailBtn');
+  if (btn) { btn.textContent = '⏳ Sending…'; btn.disabled = true; }
+  try {
+    await saveEmailSettings();
+    const r = await fetch('/api/email/test', { method: 'POST' });
+    const j = await r.json();
+    showToast({ type: j.status === 'sent' ? 'TEST EMAIL SENT' : 'EMAIL ERROR', severity: j.status === 'sent' ? 'LOW' : 'HIGH', message: j.message || ('Sent to: ' + (j.recipients||[]).join(', ')) });
+  } catch(e) {
+    showToast({ type: 'EMAIL ERROR', severity: 'HIGH', message: 'Failed to send test email: ' + e });
+  } finally {
+    if (btn) { btn.textContent = '📧 Send Test Email'; btn.disabled = false; }
+  }
+}
+
+// ══════════════════════════════════════════
+//  ZONE EDITOR
+// ══════════════════════════════════════════
+let zeMode       = 'restricted';
+let zePoints     = [];
+let zeRestricted = [];
+let zeFirearms   = [];
+let zeCanvas, zeCtx, zeImg, zeWrap;
+
+function openZoneEditor() {
+  document.getElementById('zoneEditorModal').classList.add('open');
+  zeCanvas = document.getElementById('zeCanvas');
+  zeCtx    = zeCanvas.getContext('2d');
+  zeImg    = document.getElementById('zeVideoImg');
+  zeWrap   = document.getElementById('zeCanvasWrap');
+
+  const firstFeed = document.querySelector('.camera-feed img');
+  if (firstFeed) zeImg.src = firstFeed.src;
+
+  Promise.all([
+    fetch('/api/zones').then(r => r.json()),
+    fetch('/api/firearms_zone').then(r => r.json())
+  ]).then(([r, f]) => {
+    zeRestricted = Array.isArray(r) ? r : [];
+    zeFirearms   = Array.isArray(f) ? f : [];
+    zePoints = [];
+    zeResizeCanvas();
+    zeUpdateStats();
+  }).catch(() => { zePoints = []; zeResizeCanvas(); });
+
+  zeCanvas.addEventListener('click', zeOnClick);
+  zeCanvas.addEventListener('mousemove', zeOnMouseMove);
+  window.addEventListener('resize', zeResizeCanvas);
+  zeImg.onload = zeResizeCanvas;
+  zeResizeCanvas();
+  setZoneMode('restricted');
+}
+
+function closeZoneEditor() {
+  document.getElementById('zoneEditorModal').classList.remove('open');
+  zeCanvas && zeCanvas.removeEventListener('click', zeOnClick);
+  zeCanvas && zeCanvas.removeEventListener('mousemove', zeOnMouseMove);
+  window.removeEventListener('resize', zeResizeCanvas);
+}
+
+function setZoneMode(mode) {
+  zeMode = mode;
+  document.getElementById('btnModeRestricted').className =
+    'ze-mode-btn' + (mode === 'restricted' ? ' active-restricted' : '');
+  document.getElementById('btnModeFirearms').className =
+    'ze-mode-btn' + (mode === 'firearms' ? ' active-firearms' : '');
+  zePoints = [];
+  zeRedraw();
+}
+
+function zeResizeCanvas() {
+  if (!zeImg || !zeCanvas || !zeWrap) return;
+  const wr = zeWrap.getBoundingClientRect();
+  const ir = zeImg.getBoundingClientRect();
+  zeCanvas.style.left   = (ir.left - wr.left) + 'px';
+  zeCanvas.style.top    = (ir.top  - wr.top)  + 'px';
+  zeCanvas.width  = ir.width  || wr.width;
+  zeCanvas.height = ir.height || wr.height;
+  zeRedraw();
+}
+
+function zeClientToImg(cx, cy) {
+  if (!zeImg || !zeImg.naturalWidth) return [cx, cy];
+  const wr = zeWrap.getBoundingClientRect();
+  const ir = zeImg.getBoundingClientRect();
+  const rx = cx - (ir.left - wr.left);
+  const ry = cy - (ir.top  - wr.top);
+  return [Math.round(rx * zeImg.naturalWidth  / ir.width),
+          Math.round(ry * zeImg.naturalHeight / ir.height)];
+}
+
+function zeImgToCanvas(ix, iy) {
+  if (!zeImg || !zeImg.naturalWidth) return [ix, iy];
+  const ir = zeImg.getBoundingClientRect();
+  return [ix * ir.width  / zeImg.naturalWidth,
+          iy * ir.height / zeImg.naturalHeight];
+}
+
+let _zeMouseXY = null;
+function zeOnMouseMove(e) {
+  const r = zeCanvas.getBoundingClientRect();
+  _zeMouseXY = [e.clientX - r.left, e.clientY - r.top];
+  zeRedraw();
+}
+
+function zeOnClick(e) {
+  const r  = zeCanvas.getBoundingClientRect();
+  const cx = e.clientX - r.left;
+  const cy = e.clientY - r.top;
+  if (zePoints.length >= 3) {
+    const [fx, fy] = zeImgToCanvas(zePoints[0][0], zePoints[0][1]);
+    if (Math.hypot(cx - fx, cy - fy) < 16) { zeFinishPolygon(); return; }
+  }
+  zePoints.push(zeClientToImg(cx, cy));
+  zeRedraw();
+}
+
+function zeFinishPolygon() {
+  if (zePoints.length < 3) { zePoints = []; zeRedraw(); return; }
+  if (zeMode === 'restricted') zeRestricted.push([...zePoints]);
+  else                         zeFirearms = [...zePoints];
+  zePoints = [];
+  zeRedraw();
+  zeUpdateStats();
+}
+
+function zeUndo() {
+  if (zePoints.length > 0) { zePoints.pop(); }
+  else if (zeMode === 'restricted' && zeRestricted.length > 0) { zeRestricted.pop(); }
+  else if (zeMode === 'firearms') { zeFirearms = []; }
+  zeRedraw(); zeUpdateStats();
+}
+
+function zeClearAll() {
+  zeRestricted = []; zeFirearms = []; zePoints = [];
+  zeRedraw(); zeUpdateStats();
+}
+
+async function zeSaveAndClose() {
+  if (zePoints.length >= 3) zeFinishPolygon();
+  try {
+    await fetch('/api/zones', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(zeRestricted)
+    });
+    await fetch('/api/firearms_zone', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(zeFirearms)
+    });
+    zeUpdateHeaderBadge();
+    showToast({ type: 'ZONES SAVED', severity: 'LOW',
+      message: `Restricted: ${zeRestricted.length} | Firearms zone: ${zeFirearms.length >= 3 ? 'Set' : 'Cleared'}` });
+  } catch {}
+  closeZoneEditor();
+}
+
+function zeUpdateStats() {
+  const rc = document.getElementById('zeRestrictedCount');
+  const fs = document.getElementById('zeFirearmsStatus');
+  if (rc) rc.textContent = zeRestricted.length;
+  if (fs) fs.textContent = zeFirearms.length >= 3 ? 'Set ✓' : 'Not set';
+  zeUpdateHeaderBadge();
+}
+
+function zeUpdateHeaderBadge() {
+  const total = zeRestricted.length + (zeFirearms.length >= 3 ? 1 : 0);
+  const b = document.getElementById('zoneBadge');
+  if (!b) return;
+  if (total > 0) { b.style.display = 'inline'; b.textContent = total; }
+  else            { b.style.display = 'none'; }
+}
+
+function zeRedraw() {
+  if (!zeCtx || !zeCanvas) return;
+  zeCtx.clearRect(0, 0, zeCanvas.width, zeCanvas.height);
+
+  zeRestricted.forEach(z => zeDrawZone(z, 'rgba(239,68,68,0.22)', '#ef4444', '🚫 RESTRICTED'));
+  if (zeFirearms.length >= 3) zeDrawZone(zeFirearms, 'rgba(249,115,22,0.22)', '#f97316', '🔫 FIREARMS');
+
+  if (!zePoints.length) return;
+  const col  = zeMode === 'restricted' ? '#ef4444' : '#f97316';
+  const fill = zeMode === 'restricted' ? 'rgba(239,68,68,0.13)' : 'rgba(249,115,22,0.13)';
+
+  zeCtx.save();
+  zeCtx.strokeStyle = col; zeCtx.lineWidth = 2; zeCtx.setLineDash([7, 4]);
+  zeCtx.beginPath();
+  const [x0, y0] = zeImgToCanvas(zePoints[0][0], zePoints[0][1]);
+  zeCtx.moveTo(x0, y0);
+  zePoints.slice(1).forEach(p => { const [x,y] = zeImgToCanvas(p[0],p[1]); zeCtx.lineTo(x,y); });
+  if (_zeMouseXY) zeCtx.lineTo(_zeMouseXY[0], _zeMouseXY[1]);
+  zeCtx.stroke();
+  zeCtx.setLineDash([]);
+
+  if (zePoints.length >= 2) {
+    zeCtx.beginPath();
+    zeCtx.moveTo(x0, y0);
+    zePoints.slice(1).forEach(p => { const [x,y] = zeImgToCanvas(p[0],p[1]); zeCtx.lineTo(x,y); });
+    zeCtx.closePath();
+    zeCtx.fillStyle = fill;
+    zeCtx.fill();
+  }
+
+  zePoints.forEach((p, i) => {
+    const [x, y] = zeImgToCanvas(p[0], p[1]);
+    zeCtx.beginPath();
+    zeCtx.arc(x, y, i === 0 ? 7 : 4, 0, Math.PI * 2);
+    zeCtx.fillStyle   = i === 0 ? '#fff' : col;
+    zeCtx.strokeStyle = col; zeCtx.lineWidth = 2;
+    zeCtx.fill(); zeCtx.stroke();
+  });
+  zeCtx.restore();
+}
+
+function zeDrawZone(zone, fill, stroke, label) {
+  if (zone.length < 3) return;
+  zeCtx.save();
+  zeCtx.beginPath();
+  const [x0, y0] = zeImgToCanvas(zone[0][0], zone[0][1]);
+  zeCtx.moveTo(x0, y0);
+  zone.slice(1).forEach(p => { const [x,y] = zeImgToCanvas(p[0],p[1]); zeCtx.lineTo(x,y); });
+  zeCtx.closePath();
+  zeCtx.fillStyle   = fill;
+  zeCtx.strokeStyle = stroke;
+  zeCtx.lineWidth   = 2;
+  zeCtx.fill(); zeCtx.stroke();
+  const cx = zone.reduce((s,p)=>s+p[0],0)/zone.length;
+  const cy = zone.reduce((s,p)=>s+p[1],0)/zone.length;
+  const [lx,ly] = zeImgToCanvas(cx, cy);
+  zeCtx.font = 'bold 12px Inter, sans-serif';
+  zeCtx.textAlign = 'center';
+  zeCtx.shadowColor = 'rgba(0,0,0,0.9)'; zeCtx.shadowBlur = 5;
+  zeCtx.fillStyle = '#fff';
+  zeCtx.fillText(label, lx, ly);
+  zeCtx.restore();
+}
+</script>
+
+</body>
+</html>
